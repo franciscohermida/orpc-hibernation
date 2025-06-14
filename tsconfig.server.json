@@ -1,0 +1,10 @@
+{
+  "extends": ["./tsconfig.node.json"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo",
+    "allowJs": true,
+    "types": ["node", "vite/client", "./worker-configuration.d.ts", "@cloudflare/workers-types/2023-07-01"],
+    "strictNullChecks": true
+  },
+  "include": ["server/**/*.ts"]
+}

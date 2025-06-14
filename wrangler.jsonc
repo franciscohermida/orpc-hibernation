@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "orpc-hibernation",
+  "compatibility_date": "2025-04-03",
+  "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
+  "main": "server/index.ts",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "SUBSCRIPTION_DO", "class_name": "DurableSubscription" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DurableSubscription"] }],
+  "observability": {
+    "enabled": true,
+  },
+}
