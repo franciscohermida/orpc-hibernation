@@ -1,13 +1,15 @@
-import { z } from 'zod'
 import { pub } from '../orpc'
 import { experimental_HibernationEventIterator as HibernationEventIterator } from '@orpc/server/hibernation'
-import { eventPayloadSchema } from '../schemas/eventPayload'
+import { InferRouterInputs } from '@orpc/server'
+import { internalRouter } from './internal.router'
+
+type Inputs = InferRouterInputs<typeof internalRouter>
 
 /**
  * Client-facing procedure to start listening for events.
  */
 export const onEvent = pub.handler(async ({ context }) => {
-  return new HibernationEventIterator<z.infer<typeof eventPayloadSchema>>((id) => {
+  return new HibernationEventIterator<Inputs['broadcast']>((id) => {
     // Associate the connection with a unique ID for the hibernation service
     context.ws.serializeAttachment({ id })
   })

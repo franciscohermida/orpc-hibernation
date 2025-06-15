@@ -43,3 +43,4 @@ export const postEventSchema = z.discriminatedUnion('event', [
 // Main event payload schema - currently only includes todo events
 // To add post events, change this to: z.union([todoEventSchema, postEventSchema])
 export const eventPayloadSchema = z.union([todoEventSchema, postEventSchema])
+export type EventPayload = z.infer<typeof eventPayloadSchema>
