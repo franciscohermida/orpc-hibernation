@@ -2,16 +2,16 @@ import { DurableObject } from 'cloudflare:workers'
 import { experimental_RPCHandler as WSHandler } from '@orpc/server/websocket'
 import { RPCHandler } from '@orpc/server/fetch'
 import { experimental_HibernationPlugin as HibernationPlugin } from '@orpc/server/hibernation'
-import { serverRouter } from '../router/server.router'
-import { clientRouter } from '../router/client.router'
+import { internalRouter } from '../router/internal.router'
+import { publicRouter } from '../router/public.router'
 
 // This handler is for incoming WebSocket connections from clients
-const wsHandler = new WSHandler(clientRouter, {
+const wsHandler = new WSHandler(publicRouter, {
   plugins: [new HibernationPlugin()],
 })
 
 // This handler is for incoming HTTP requests from your main worker
-const rpcHandler = new RPCHandler(serverRouter)
+const rpcHandler = new RPCHandler(internalRouter)
 
 export class DurableSubscription extends DurableObject<Env> {
   // public fetch handler
@@ -33,10 +33,7 @@ export class DurableSubscription extends DurableObject<Env> {
     const result = await rpcHandler.handle(request, {
       prefix: '/',
       context: {
-        // We pass wsHandler and a fake `ws` to satisfy the ORPCContext type.
-        // This is safe because the `broadcast` procedure doesn't use them.
         handler: wsHandler,
-        ws: undefined as unknown as WebSocket,
         getWebsockets: () => this.ctx.getWebSockets(),
         env: this.env,
       },

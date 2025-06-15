@@ -1,19 +1,19 @@
 import { z } from 'zod'
-import { pubClient } from '../orpc'
+import { pub } from '../orpc'
 import { experimental_HibernationEventIterator as HibernationEventIterator } from '@orpc/server/hibernation'
 import { eventPayloadSchema } from '../schemas/eventPayload'
 
 /**
  * Client-facing procedure to start listening for events.
  */
-export const onEvent = pubClient.handler(async ({ context }) => {
+export const onEvent = pub.handler(async ({ context }) => {
   return new HibernationEventIterator<z.infer<typeof eventPayloadSchema>>((id) => {
     // Associate the connection with a unique ID for the hibernation service
     context.ws.serializeAttachment({ id })
   })
 })
 
-export const ping = pubClient.handler(async () => {
+export const ping = pub.handler(async () => {
   return {
     message: 'pong',
   }
@@ -26,7 +26,7 @@ export const ping = pubClient.handler(async () => {
 //   }
 // })
 
-export const clientRouter = {
+export const publicRouter = {
   onEvent,
   ping,
 }

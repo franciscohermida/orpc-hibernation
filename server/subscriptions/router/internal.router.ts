@@ -1,12 +1,12 @@
 import { experimental_encodeHibernationRPCEvent as encodeHibernationRPCEvent } from '@orpc/server/hibernation'
 import { eventPayloadSchema } from '../schemas/eventPayload'
-import { pubClient } from '../orpc'
+import { internal } from '../orpc'
 
 /**
  * Internal procedure for your main worker to call.
  * This is how your stateless API sends messages to connected clients.
  */
-export const broadcast = pubClient.input(eventPayloadSchema).handler(async ({ input, context }) => {
+export const broadcast = internal.input(eventPayloadSchema).handler(async ({ input, context }) => {
   const websockets = context.getWebsockets()
 
   for (const ws of websockets) {
@@ -19,6 +19,6 @@ export const broadcast = pubClient.input(eventPayloadSchema).handler(async ({ in
   }
 })
 
-export const serverRouter = {
+export const internalRouter = {
   broadcast,
 }

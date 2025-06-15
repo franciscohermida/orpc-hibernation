@@ -5,7 +5,7 @@ import { type Todo, TodoSchema } from '../schemas/todo'
 import { RPCLink } from '@orpc/client/fetch'
 import { createORPCClient } from '@orpc/client'
 import type { RouterClient } from '@orpc/server'
-import { serverRouter } from '../../subscriptions/router/server.router'
+import { internalRouter } from '../../subscriptions/router/internal.router'
 
 // Simple in-memory database is enough for this example even though workers are stateless
 const todos: Todo[] = [
@@ -88,7 +88,7 @@ async function broadcastTodoEvent(
     fetch: (request) => doStub.fetchInternal(request),
   })
 
-  const doClient: RouterClient<typeof serverRouter> = createORPCClient(link)
+  const doClient: RouterClient<typeof internalRouter> = createORPCClient(link)
 
   await doClient.broadcast({
     event,

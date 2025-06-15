@@ -1,7 +1,7 @@
 import { os } from '@orpc/server'
 import { experimental_RPCHandler as RPCHandler } from '@orpc/server/websocket'
 
-export interface ClientContext {
+export interface PublicContext {
   env: Env
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: RPCHandler<any>
@@ -9,13 +9,12 @@ export interface ClientContext {
   getWebsockets: () => WebSocket[]
 }
 
-export interface ServerContext {
+export interface InternalContext {
   env: Env
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: RPCHandler<any>
-  ws: WebSocket
   getWebsockets: () => WebSocket[]
 }
 
-export const pubClient = os.$context<ClientContext>()
-export const pubServer = os.$context<ServerContext>()
+export const pub = os.$context<PublicContext>()
+export const internal = os.$context<InternalContext>()

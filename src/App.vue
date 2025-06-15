@@ -29,7 +29,7 @@ import { createORPCClient } from '@orpc/client'
 import { experimental_RPCLink as WSLink } from '@orpc/client/websocket'
 import type { RouterClient } from '@orpc/server'
 import { RPCLink } from '@orpc/client/fetch'
-import { clientRouter } from '../server/subscriptions/router/client.router'
+import { publicRouter } from '../server/subscriptions/router/public.router'
 import { router } from '../server/rpc/router'
 import { TodoSchema } from '../server/rpc/schemas/todo'
 import { WebSocket } from 'partysocket'
@@ -64,7 +64,7 @@ const wsLink = new WSLink({
   websocket,
 })
 
-const wsClient: RouterClient<typeof clientRouter> = createORPCClient(wsLink)
+const wsClient: RouterClient<typeof publicRouter> = createORPCClient(wsLink)
 // #endregion
 
 const controller = new AbortController()
