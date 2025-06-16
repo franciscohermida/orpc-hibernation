@@ -3,6 +3,7 @@
     <h1>Todo List</h1>
     <button @click="fetchData">Refresh</button>
     <button @click="handlePing">Ping</button>
+    <button @click="switchUser">Switch User</button>
     <span style="margin-left: auto; font-size: 0.8em; color: #666"> User: {{ userId }} </span>
   </div>
   <div>
@@ -23,53 +24,40 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { z } from 'zod'
 import { createORPCClient } from '@orpc/client'
-import { experimental_RPCLink as WSLink } from '@orpc/client/websocket'
 import type { RouterClient } from '@orpc/server'
 import { RPCLink } from '@orpc/client/fetch'
-import { publicRouter } from '../server/subscriptions/router/public.router'
 import { router } from '../server/rpc/router'
 import { TodoSchema } from '../server/rpc/schemas/todo'
-import { WebSocket } from 'partysocket'
+import { useNotifications } from './composables/useEventNotifications'
 
 // get or create unique user id from local storage
-let userId: string | null = localStorage.getItem('userId')
-if (!userId) {
-  userId = crypto.randomUUID()
-  localStorage.setItem('userId', userId)
+const userId = ref(getOrSetUserId())
+function getOrSetUserId() {
+  let id = localStorage.getItem('userId')
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem('userId', id)
+  }
+  return id
 }
 
 const todos = ref<z.infer<typeof TodoSchema>[]>([])
 
-// #region RPC client
 const rpcLink = new RPCLink({
   url: `${window.location.origin}/api/rpc`,
-  headers: {
-    'x-user-id': userId,
-  },
+  headers: () => ({
+    'x-user-id': userId.value,
+  }),
 })
 const rpcClient: RouterClient<typeof router> = createORPCClient(rpcLink)
-// #endregion
 
-// #region WebSocket client
-const websocket = new WebSocket(
-  `${window.location.origin}/api/subscription?userId=${userId}`,
-  undefined,
-  { debug: true },
-)
-
-const wsLink = new WSLink({
-  websocket,
-})
-
-const wsClient: RouterClient<typeof publicRouter> = createORPCClient(wsLink)
-// #endregion
-
-const controller = new AbortController()
-void (async () => {
-  for await (const message of await wsClient.onEvent(undefined, { signal: controller.signal })) {
+const wsUrl = computed(() => `${window.location.origin}/api/subscription?userId=${userId.value}`)
+const { wsClient } = useNotifications({
+  websocketUrl: wsUrl,
+  handler: (message) => {
     console.log('message received', message)
 
     if (message.event === 'todo.created') {
@@ -93,8 +81,8 @@ void (async () => {
       // Handle unknown events
       console.warn('Unknown event:', message)
     }
-  }
-})()
+  },
+})
 
 const createText = ref('')
 async function handleCreate() {
@@ -113,17 +101,23 @@ async function handleDelete(id: number) {
 }
 
 async function handlePing() {
-  const data = await wsClient.ping()
+  const data = await wsClient.value.ping()
   console.log('ping', data)
 }
 
+async function switchUser() {
+  // Generate a new user ID and store it
+  const newUserId = crypto.randomUUID()
+  localStorage.setItem('userId', newUserId)
+  userId.value = newUserId
+
+  console.log(`Switching from user ${userId.value} to ${newUserId}`)
+}
+
+// initial data fetch
 async function fetchData() {
   const data = await rpcClient.todo.list()
   todos.value = data
 }
 fetchData()
-
-onUnmounted(() => {
-  controller.abort()
-})
 </script>
