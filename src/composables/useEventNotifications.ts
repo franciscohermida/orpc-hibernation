@@ -1,16 +1,13 @@
-import { onUnmounted, shallowRef, watch, type ComputedRef } from 'vue'
-import { WebSocket } from 'partysocket'
-import { experimental_RPCLink as WSLink } from '@orpc/client/websocket'
-import { createORPCClient } from '@orpc/client'
+import { onUnmounted, watchEffect } from 'vue'
 import type { publicRouter } from '../../server/subscriptions/router/public.router'
 import type { InferRouterOutputs, RouterClient } from '@orpc/server'
+import { useWSClient } from './useWSClient'
 
 export type Outputs = InferRouterOutputs<typeof publicRouter>
 
-export function useNotifications(args: {
-  websocketUrl: ComputedRef<string>
+export function useEventNotifications(args: {
   handler: (
-    // TODO: is there a better way to get this type?
+    // TODO: is there a better way to do this?
     message: Awaited<
       ReturnType<RouterClient<typeof publicRouter>['onEvent']>
     > extends AsyncIterator<infer T>
@@ -18,44 +15,26 @@ export function useNotifications(args: {
       : never,
   ) => void
 }) {
-  let websocket: WebSocket = new WebSocket(args.websocketUrl.value, undefined, { debug: true })
-  let controller = new AbortController()
-  let wsLink = new WSLink({
-    websocket,
+  let controller: AbortController | null = null
+
+  const { wsClient } = useWSClient()
+  watchEffect(() => {
+    const client = wsClient.value
+    if (client != null) {
+      controller?.abort()
+      controller = new AbortController()
+      ;(async () => {
+        for await (const message of await client.onEvent(undefined, {
+          signal: controller.signal,
+        })) {
+          args.handler(message)
+        }
+      })()
+    }
   })
-  const wsClient = shallowRef<RouterClient<typeof publicRouter>>(createORPCClient(wsLink))
-
-  startEventListener()
-
-  // Re-initialize when URL changes
-  watch(args.websocketUrl, () => {
-    controller.abort()
-    websocket.close()
-
-    websocket = new WebSocket(args.websocketUrl.value, undefined, { debug: true })
-
-    wsLink = new WSLink<typeof publicRouter>({
-      websocket,
-    })
-    wsClient.value = createORPCClient(wsLink)
-
-    startEventListener()
-  })
-
-  function startEventListener() {
-    controller = new AbortController()
-    ;(async () => {
-      for await (const message of await wsClient.value.onEvent(undefined, {
-        signal: controller.signal,
-      })) {
-        args.handler(message)
-      }
-    })()
-  }
 
   onUnmounted(() => {
-    websocket.close()
-    controller.abort()
+    controller?.abort()
   })
 
   return {

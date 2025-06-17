@@ -24,14 +24,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { z } from 'zod'
 import { createORPCClient } from '@orpc/client'
 import type { RouterClient } from '@orpc/server'
 import { RPCLink } from '@orpc/client/fetch'
 import { router } from '../server/rpc/router'
 import { TodoSchema } from '../server/rpc/schemas/todo'
-import { useNotifications } from './composables/useEventNotifications'
+import { useEventNotifications } from './composables/useEventNotifications'
+import { useWSClient } from './composables/useWSClient'
 
 // get or create unique user id from local storage
 const userId = ref(getOrSetUserId())
@@ -54,9 +55,12 @@ const rpcLink = new RPCLink({
 })
 const rpcClient: RouterClient<typeof router> = createORPCClient(rpcLink)
 
-const wsUrl = computed(() => `${window.location.origin}/api/subscription?userId=${userId.value}`)
-const { wsClient } = useNotifications({
-  websocketUrl: wsUrl,
+const { websocketUrl } = useWSClient()
+watchEffect(() => {
+  websocketUrl.value = `${window.location.origin}/api/subscription?userId=${userId.value}`
+})
+
+const { wsClient } = useEventNotifications({
   handler: (message) => {
     console.log('message received', message)
 
@@ -101,7 +105,7 @@ async function handleDelete(id: number) {
 }
 
 async function handlePing() {
-  const data = await wsClient.value.ping()
+  const data = await wsClient.value?.ping()
   console.log('ping', data)
 }
 
